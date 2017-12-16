@@ -185,5 +185,93 @@ Código base para la registrar un usuario en Firebase a través de un email y un
             }
         });
 ```
+### Inicialización de Firebase con Facebbok.
 
+Código base para la registrar un usuario en Firebase usando tu cuenta de Facebook.
+```java
+ // Registramso el SDK de Facebook
+        FacebookSdk.sdkInitialize(getApplicationContext());
+        AppEventsLogger.activateApp(this);
+
+  // Inicializamos Firebase
+        mAuth = FirebaseAuth.getInstance();
+        
+        LoginButton facebooksingin = (LoginButton) findViewById(R.id.bt_facebook);
+
+  // Pedimos los permisos al usuario
+        facebooksingin.setReadPermissions("email");
+  
+  // Al pulsar el botón se abre el OAuth de Facebook para logearnos con nuestra cuenta, si la
+  // autentifiación de Facebook es correcta, nos devuelve un token que utilizaremos para
+  // el registro en el Firebase
+        facebooksingin.registerCallback(mCallbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                // Si la url ha sido correcta gestionamos el OAuth
+                handleFacebookAccessToken(loginResult.getAccessToken());
+            }
+
+            // Cancelada
+            @Override
+            public void onCancel() {
+                Log.i(TAG, "facebook:onCancel");
+            }
+
+            // Error (conexion por ejemplo)
+            @Override
+            public void onError(FacebookException error) {
+                Log.i(TAG, "facebook:onError", error);
+            }
+        });
+
+
+  // Cerramos la sesion de Facebook
+        logoutFacebook.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mAuth.signOut();
+                updateUI(null);
+            }
+        });
+   // Al pulsar el botón se abre el OAuth de Facebook para logearnos con nuestra cuenta, si la
+   // autentifiación de Facebook es correcta, nos devuelve un token que utilizaremos para
+   // el registro en el Firebase
+    private void handleFacebookAccessToken(AccessToken token) {
+
+        // Obtenemos las credenciales del usuario registrado a través del OAuth de Facebook
+        AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
+
+        // Lo registramos en Firebase
+        mAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()) {
+                            // Si el registro ha sido correcto
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            updateUI(user);
+
+                        } else {
+                            // Error detallado
+                            Log.d(TAG, "onComplete: Failed="
+                                    + task.getException().getMessage());
+                            // No ha podido registrarse en Firebase
+                            setSnackBar(mLayout,getString(R.string.facebook_singin_err));
+                            updateUI(null);
+                        }
+                    }
+                });
+
+    }
+
+    // Pasamos el resultado de la actividad al boton de login
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        mCallbackManager.onActivityResult(requestCode, resultCode, data);
+    }
+```
+
+El resto, y mucho más, lo puedes encontrar documentado en el proyecto.
 
