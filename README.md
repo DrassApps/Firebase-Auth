@@ -5,13 +5,16 @@ La aplicación en Android muestra diferentes formas de autentifiación con la pl
 
 ### Autentificación integrada 
 * Email & Password
+* Número de Teléfono
 * Google SingIn
 * Facebook
 * Tiwtter
 
 Es muy importante que en el archivo 'Strings' modifiqueis las diferentes *KEYs* por las vuestras de Firebase.
 
-### Inicialización de Firebase Google.
+### Inicialización de Firebase con Google ID.
+
+Código base para la registrar un usuario en Firebase usando tu cuenta de Google.
 
 ```java
   // Inicializamos Firebase
@@ -78,3 +81,109 @@ Es muy importante que en el archivo 'Strings' modifiqueis las diferentes *KEYs* 
                 });
     }
 ```
+### Inicialización de Firebase con Usuario & Contraseña.
+
+Código base para la registrar un usuario en Firebase a través de un email y una contraseña pedida al usuario por la UI
+
+```java
+  // Inicializamos Firebase
+        mAuth = FirebaseAuth.getInstance();
+   // Registrarse
+        registro.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                // Obtenemos el texto de los EditTexts
+                email = emailEd.getText().toString();
+                password = passwordEd.getText().toString();
+
+                // Validamoas los campos
+                if (correoValido(email) && password.length() > 5){
+
+                    // Creamos un usuario con Email & Passwrod
+                    mAuth.createUserWithEmailAndPassword(email, password)
+                            .addOnCompleteListener(RegistroEmailFirebase.this,
+                            new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                    // Si la creacion del usuario falla, damos un mensaje de error,
+                                    // en caso de registro correcto, obtenemos el usuario y
+                                    // actualizamos la vista con los datos del usuario
+
+                                    FirebaseUser user = mAuth.getCurrentUser();
+                                    updateUI(user);
+
+                                    // Solo para el registro con Email, nos guardamos la contraseña
+                                    // del usuario en la BD como ejemplo de que si se puede tener
+                                    // la contraseña de un usario en la consola de Firebase. Al
+                                    // guardarnos datos sensibles de los usuarios, debemos
+                                    // tener en cuenta la LOPD y LPI
+
+                                    // Cogemos tambien el token de sesion activa del usuario
+                                    String token = FirebaseInstanceId.getInstance().getToken();
+
+                                    // Guardamos los datos
+                                    guardarDatosUsuario(email,password,token);
+
+                                    if (!task.isSuccessful()) {
+                                        // No ha podido registrarse y nos muestra el fallo que
+                                        // devuelve firebase
+                                        Log.d(TAG, "onComplete: Failed="
+                                                + task.getException().getMessage());
+
+                                        // Manejamos el fallo para que el usuario sepa realmente
+                                        // el fallo
+                                        if (task.getException().getMessage().
+                                                contains("badly formatted")){
+                                            setSnackBar(mLayout,"Email incorrecto");
+                                        }
+                                        updateUI(null);
+                                    }
+
+                                }
+                            });
+
+                }else{ setSnackBar(mLayout,"Datos de registro incorrectos."); }
+            }
+        });
+
+        // Iniciar sesion
+        inisesion.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                // Obtenemos el texto de los EditTexts
+                email = emailEd.getText().toString();
+                password = passwordEd.getText().toString();
+
+                // Verificamos los datos de entrada e intentamos logerarnos
+                if(correoValido(email) && password.length() > 5){
+                    mAuth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener(RegistroEmailFirebase.this,
+                                    new OnCompleteListener<AuthResult>() {
+                                @Override
+                                public void onComplete(@NonNull Task<AuthResult> task) {
+
+                                    // Obtenemos el usuario
+                                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+                                    // Si recibimos un usuario actualizamos la vista
+                                    if (user != null) {
+                                        updateUI(user);
+                                    }
+
+                                    // Si firebase nos devuelve un error, le deimos al usuario que
+                                    // se ha equivocado
+                                    if (!task.isSuccessful()) {
+                                        setSnackBar(mLayout,"Datos de acceso incorrectos");
+                                        updateUI(null);
+                                    }
+                                }
+                            });
+
+                }else{ setSnackBar(mLayout,"Datos de acceso incorrectos"); }
+            }
+        });
+```
+
+
